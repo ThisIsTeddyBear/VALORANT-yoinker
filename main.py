@@ -41,6 +41,8 @@ from src.account_manager.account_auth import AccountAuth
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+PROJECT_ROOT = Path(__file__).parent.resolve()
+
 os.system(f"title VALORANT rank yoinker v{version}")
 
 server = ""
@@ -332,7 +334,7 @@ try:
 
     print("\nvRY Mobile", color(f"- {get_ip()}:{cfg.port}", fore=(255, 127, 80)))
 
-    inventories_url = Path("docs/matchLoadouts.html").resolve().as_uri()
+    inventories_url = (PROJECT_ROOT / Path("docs/matchLoadouts.html")).resolve().as_uri()
     inventories_link = (
         f"\033]8;;{inventories_url}\033\\"
         "View in browser"
@@ -804,8 +806,16 @@ try:
                 names = namesClass.get_names_from_puuids(Players)
                 pregame_match_id = pregame_stats.get("ID")
                 ensure_match_player_cache(pregame_match_id)
-                loadouts = loadoutsClass.get_match_loadouts(pregame.get_pregame_match_id(), pregame_stats, cfg.weapon, valoApiSkins, names,
-                  state="pregame")
+                loadouts_arr = loadoutsClass.get_match_loadouts(
+                    pregame.get_pregame_match_id(),
+                    pregame_stats,
+                    cfg.weapon,
+                    valoApiSkins,
+                    names,
+                    state="pregame",
+                )
+                loadouts = loadouts_arr[0]
+                loadouts_data = loadouts_arr[1]
                 playersLoaded = 1
                 with richConsole.status("Loading Players...") as status:
                     presence = presences.get_presence()
@@ -925,7 +935,10 @@ try:
                         name = NameColor
 
                         # SKIN
-                        skin = loadouts[0].get(player["Subject"], "")
+                        skin = loadouts.get(player["Subject"], "")
+                        player_loadout = loadouts_data["Players"].get(
+                            player["Subject"], {}
+                        )
 
                         # RANK
                         rankName = Ranks[playerRank["rank"]]
@@ -990,6 +1003,7 @@ try:
                         )
 
                         heartbeat_data["players"][player["Subject"]] = {
+                            "puuid": player["Subject"],
                             "name": names[player["Subject"]],
                             "partyNumber": partyNum if party_icon != "" else 0,
                             "agent": agent_dict.get(player["CharacterID"].lower(), "Unknown"),
@@ -1002,6 +1016,12 @@ try:
                             "headshotPercentage": ppstats["hs"],
                             "winPercentage": f"{playerRank['wr']} ({playerRank['numberofgames']})",
                             "lastActive": last_active,
+                            "agentImgLink": player_loadout.get("Agent", None),
+                            "team": player_loadout.get("Team", None),
+                            "sprays": player_loadout.get("Sprays", None),
+                            "title": player_loadout.get("Title", None),
+                            "playerCard": player_loadout.get("PlayerCard", None),
+                            "weapons": player_loadout.get("Weapons", None),
                         }
 
             if game_state == "MENUS":
